@@ -1,182 +1,139 @@
-# word-wrap [![NPM version](https://img.shields.io/npm/v/word-wrap.svg?style=flat)](https://www.npmjs.com/package/word-wrap) [![NPM monthly downloads](https://img.shields.io/npm/dm/word-wrap.svg?style=flat)](https://npmjs.org/package/word-wrap) [![NPM total downloads](https://img.shields.io/npm/dt/word-wrap.svg?style=flat)](https://npmjs.org/package/word-wrap) [![Linux Build Status](https://img.shields.io/travis/jonschlinkert/word-wrap.svg?style=flat&label=Travis)](https://travis-ci.org/jonschlinkert/word-wrap)
+# quick-lru [![Build Status](https://travis-ci.org/sindresorhus/quick-lru.svg?branch=master)](https://travis-ci.org/sindresorhus/quick-lru) [![Coverage Status](https://coveralls.io/repos/github/sindresorhus/quick-lru/badge.svg?branch=master)](https://coveralls.io/github/sindresorhus/quick-lru?branch=master)
 
-> Wrap words to a specified length.
+> Simple [“Least Recently Used” (LRU) cache](https://en.m.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_.28LRU.29)
+
+Useful when you need to cache something and limit memory usage.
+
+Inspired by the [`hashlru` algorithm](https://github.com/dominictarr/hashlru#algorithm), but instead uses [`Map`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Map) to support keys of any type, not just strings, and values can be `undefined`.
 
 ## Install
 
-Install with [npm](https://www.npmjs.com/):
-
-```sh
-$ npm install --save word-wrap
+```
+$ npm install quick-lru
 ```
 
 ## Usage
 
 ```js
-var wrap = require('word-wrap');
+const QuickLRU = require('quick-lru');
 
-wrap('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.');
+const lru = new QuickLRU({maxSize: 1000});
+
+lru.set('🦄', '🌈');
+
+lru.has('🦄');
+//=> true
+
+lru.get('🦄');
+//=> '🌈'
 ```
 
-Results in:
+## API
 
-```
-  Lorem ipsum dolor sit amet, consectetur adipiscing
-  elit, sed do eiusmod tempor incididunt ut labore
-  et dolore magna aliqua. Ut enim ad minim veniam,
-  quis nostrud exercitation ullamco laboris nisi ut
-  aliquip ex ea commodo consequat.
-```
+### new QuickLRU(options?)
 
-## Options
+Returns a new instance.
 
-![image](https://cloud.githubusercontent.com/assets/383994/6543728/7a381c08-c4f6-11e4-8b7d-b6ba197569c9.png)
+### options
 
-### options.width
+Type: `object`
 
-Type: `Number`
+#### maxSize
 
-Default: `50`
+*Required*\
+Type: `number`
 
-The width of the text before wrapping to a new line.
+The maximum number of items before evicting the least recently used items.
 
-**Example:**
+#### maxAge
 
-```js
-wrap(str, {width: 60});
-```
+Type: `number`\
+Default: `Infinity`
 
-### options.indent
+The maximum number of milliseconds an item should remain in cache.
+By default maxAge will be Infinity, which means that items will never expire.
 
-Type: `String`
+Lazy expiration happens upon the next `write` or `read` call.
 
-Default: `` (none)
+Individual expiration of an item can be specified by the `set(key, value, options)` method.
 
-The string to use at the beginning of each line.
+#### onEviction
 
-**Example:**
+*Optional*\
+Type: `(key, value) => void`
 
-```js
-wrap(str, {indent: '      '});
-```
+Called right before an item is evicted from the cache.
 
-### options.newline
+Useful for side effects or for items like object URLs that need explicit cleanup (`revokeObjectURL`).
 
-Type: `String`
+### Instance
 
-Default: `\n`
+The instance is [`iterable`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Iteration_protocols) so you can use it directly in a [`for…of`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Statements/for...of) loop.
 
-The string to use at the end of each line.
+Both `key` and `value` can be of any type.
 
-**Example:**
+#### .set(key, value, options?)
 
-```js
-wrap(str, {newline: '\n\n'});
-```
+Set an item. Returns the instance.
 
-### options.escape
+Individual expiration of an item can be specified with the `maxAge` option. If not specified, the global `maxAge` value will be used in case it is specified on the constructor, otherwise the item will never expire.
 
-Type: `function`
+#### .get(key)
 
-Default: `function(str){return str;}`
+Get an item.
 
-An escape function to run on each line after splitting them.
+#### .has(key)
 
-**Example:**
+Check if an item exists.
 
-```js
-var xmlescape = require('xml-escape');
-wrap(str, {
-  escape: function(string){
-    return xmlescape(string);
-  }
-});
-```
+#### .peek(key)
 
-### options.trim
+Get an item without marking it as recently used.
 
-Type: `Boolean`
+#### .delete(key)
 
-Default: `false`
+Delete an item.
 
-Trim trailing whitespace from the returned string. This option is included since `.trim()` would also strip the leading indentation from the first line.
+Returns `true` if the item is removed or `false` if the item doesn't exist.
 
-**Example:**
+#### .clear()
 
-```js
-wrap(str, {trim: true});
-```
+Delete all items.
 
-### options.cut
+#### .resize(maxSize)
 
-Type: `Boolean`
+Update the `maxSize`, discarding items as necessary. Insertion order is mostly preserved, though this is not a strong guarantee.
 
-Default: `false`
+Useful for on-the-fly tuning of cache sizes in live systems.
 
-Break a word between any two letters when the word is longer than the specified width.
+#### .keys()
 
-**Example:**
+Iterable for all the keys.
 
-```js
-wrap(str, {cut: true});
-```
+#### .values()
 
-## About
+Iterable for all the values.
 
-### Related projects
+#### .entriesAscending()
 
-* [common-words](https://www.npmjs.com/package/common-words): Updated list (JSON) of the 100 most common words in the English language. Useful for… [more](https://github.com/jonschlinkert/common-words) | [homepage](https://github.com/jonschlinkert/common-words "Updated list (JSON) of the 100 most common words in the English language. Useful for excluding these words from arrays.")
-* [shuffle-words](https://www.npmjs.com/package/shuffle-words): Shuffle the words in a string and optionally the letters in each word using the… [more](https://github.com/jonschlinkert/shuffle-words) | [homepage](https://github.com/jonschlinkert/shuffle-words "Shuffle the words in a string and optionally the letters in each word using the Fisher-Yates algorithm. Useful for creating test fixtures, benchmarking samples, etc.")
-* [unique-words](https://www.npmjs.com/package/unique-words): Return the unique words in a string or array. | [homepage](https://github.com/jonschlinkert/unique-words "Return the unique words in a string or array.")
-* [wordcount](https://www.npmjs.com/package/wordcount): Count the words in a string. Support for english, CJK and Cyrillic. | [homepage](https://github.com/jonschlinkert/wordcount "Count the words in a string. Support for english, CJK and Cyrillic.")
+Iterable for all entries, starting with the oldest (ascending in recency).
 
-### Contributing
+#### .entriesDescending()
 
-Pull requests and stars are always welcome. For bugs and feature requests, [please create an issue](../../issues/new).
+Iterable for all entries, starting with the newest (descending in recency).
 
-### Contributors
+#### .size
 
-| **Commits** | **Contributor** | 
-| --- | --- |
-| 43 | [jonschlinkert](https://github.com/jonschlinkert) |
-| 2 | [lordvlad](https://github.com/lordvlad) |
-| 2 | [hildjj](https://github.com/hildjj) |
-| 1 | [danilosampaio](https://github.com/danilosampaio) |
-| 1 | [2fd](https://github.com/2fd) |
-| 1 | [toddself](https://github.com/toddself) |
-| 1 | [wolfgang42](https://github.com/wolfgang42) |
-| 1 | [zachhale](https://github.com/zachhale) |
+The stored item count.
 
-### Building docs
+---
 
-_(This project's readme.md is generated by [verb](https://github.com/verbose/verb-generate-readme), please don't edit the readme directly. Any changes to the readme must be made in the [.verb.md](.verb.md) readme template.)_
-
-To generate the readme, run the following command:
-
-```sh
-$ npm install -g verbose/verb#dev verb-generate-readme && verb
-```
-
-### Running tests
-
-Running and reviewing unit tests is a great way to get familiarized with a library and its API. You can install dependencies and run tests with the following command:
-
-```sh
-$ npm install && npm test
-```
-
-### Author
-
-**Jon Schlinkert**
-
-* [github/jonschlinkert](https://github.com/jonschlinkert)
-* [twitter/jonschlinkert](https://twitter.com/jonschlinkert)
-
-### License
-
-Copyright © 2017, [Jon Schlinkert](https://github.com/jonschlinkert).
-Released under the [MIT License](LICENSE).
-
-***
-
-_This file was generated by [verb-generate-readme](https://github.com/verbose/verb-generate-readme), v0.6.0, on June 02, 2017._
+<div align="center">
+	<b>
+		<a href="https://tidelift.com/subscription/pkg/npm-quick-lru?utm_source=npm-quick-lru&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
+	</b>
+	<br>
+	<sub>
+		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
+	</sub>
+</div>
