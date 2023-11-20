@@ -27,3 +27,6 @@ dist-ssr
 
 # vscode
 .vscode
+.vscode-insiders
+.vscode-test
+.vscode-oss-dev
